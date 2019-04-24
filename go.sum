@@ -1,0 +1,6 @@
+github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
+github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
+github.com/vosmith/pancake v0.0.0-20170503023453-935e4f9b30d6 h1:3SzMzlTh7DuJDNn12Aj5jKmQRfXob6DOGjyqJcjKOI4=
+github.com/vosmith/pancake v0.0.0-20170503023453-935e4f9b30d6/go.mod h1:gMEF5lHy21yX/Gdo/xix2o2KKjlPs2vsS4/cwNmDd8E=
+gopkg.in/urfave/cli.v1 v1.20.0 h1:NdAVW6RYxDif9DhDHaAortIu956m2c0v+09AZBPTbE0=
+gopkg.in/urfave/cli.v1 v1.20.0/go.mod h1:vuBzUtMdQeixQj8LVd+/98pzhxNGQoyuPBlsXHOQNO0=
