@@ -25,11 +25,6 @@ workflow "Handle Release" {
 ##
 action "Test" {
   uses = "skx/github-action-tester@master"
-  secrets = ["GITHUB_TOKEN"]
-
-  ##
-  ## The actions
-  ##
 }
 
 ##
