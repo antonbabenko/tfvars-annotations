@@ -30,3 +30,10 @@ func TestMain(m *testing.M) {
 
 	assert(true)
 }
+
+func TestVersionInfo(t *testing.T) {
+	assert("unknown" == versionInfo())
+
+	build_version = "vXYZ"
+	assert("vXYZ" == versionInfo())
+}

@@ -2,57 +2,56 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/antonbabenko/dynamic-tfvars/util"
 
 	"github.com/pkg/errors"
 	"github.com/vosmith/pancake"
-	"gopkg.in/urfave/cli.v1"
 )
 
-func main() {
-	app := cli.NewApp()
-	app.Name = "dynamic-tfvars"
-	app.Description = "Update values in terraform.tfvars by annotations"
-	app.Version = "1.0.0"
-	app.Compiled = time.Now()
-	app.Authors = []cli.Author{
-		cli.Author{
-			Name:  "Anton Babenko",
-			Email: "anton@antonbabenko.com",
-		},
-	}
-	app.Copyright = "(c) 2019 Anton Babenko"
-	app.HelpName = "contrive"
+var version = flag.Bool("version", false, "print version information and exit")
 
-	app.Action = run
-
-	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+// Main filename to work with
+var tfvarsFile = "terraform.tfvars"
 
 var err error
 
-func run(c *cli.Context) error {
+// Deliberately uninitialized. See below.
+var build_version string
 
-	// Main filename to work with
-	var tfvarsFile = "terraform.tfvars"
+// versionInfo returns a string containing the version information of the
+// current build. It's empty by default, but can be included as part of the
+// build process by setting the main.build_version variable.
+func versionInfo() string {
+	if build_version != "" {
+		return build_version
+	} else {
+		return "unknown"
+	}
+}
+
+func main() {
+	flag.Parse()
+
+	if *version == true {
+		fmt.Printf("%s version %s\n", os.Args[0], versionInfo())
+		os.Exit(0)
+	}
 
 	// Relative path to original tfvars file
-	var tfvarsDir = c.Args().Get(0)
+	var tfvarsDir = flag.Arg(0)
+
 	if _, err = os.Stat(tfvarsDir); err != nil {
-		return err
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	// Full relative path to original tfvars file
@@ -74,7 +73,7 @@ func run(c *cli.Context) error {
 	tfvarsContent, isDisabled := checkIsDisabled(tfvarsFullpath)
 	if isDisabled {
 		fmt.Printf("Dynamic update has been disabled in %s. Nothing to do.", tfvarsFile)
-		return nil
+		os.Exit(1)
 	}
 
 	// Find all keys to replace
@@ -82,7 +81,7 @@ func run(c *cli.Context) error {
 
 	if keysToReplace == nil {
 		fmt.Println("There are no keys to replace")
-		return nil
+		os.Exit(1)
 	}
 
 	for _, key := range keysToReplace {
@@ -113,8 +112,6 @@ func run(c *cli.Context) error {
 
 		workDir := filepath.Join(tfvarsDir, "../", dirName)
 		//fmt.Println(workDir)
-
-		//var resultValue interface{}
 
 		resultValue, _, errResult := getResultFromTerragruntOutput(workDir, outputName)
 
@@ -149,7 +146,8 @@ func run(c *cli.Context) error {
 	err = replaceAllKeysInTfvarsFile(tfvarsFullpath, allKeyValues)
 
 	if err != nil {
-		return errors.Wrapf(err, "Can't replace all keys in %s", tfvarsFullpath)
+		fmt.Printf("%s: Can't replace all keys in %s", err, tfvarsFullpath)
+		os.Exit(1)
 	}
 
 	fmt.Printf("Copying updated %s into %s", tfvarsFullpath, terraformWorkingDirTfvarsFullPath)
@@ -159,17 +157,13 @@ func run(c *cli.Context) error {
 	_, err = util.CopyFile(tfvarsFullpath, terraformWorkingDirTfvarsFullPath)
 
 	if err != nil {
-		return errors.Wrapf(err, "Can't copy file to %s", terraformWorkingDirTfvarsFullPath)
+		fmt.Printf("%s: Can't copy file to %s", err, terraformWorkingDirTfvarsFullPath)
+		os.Exit(1)
 	}
 
-	//echo "Copying updated $tfvars_file into $terragrunt_working_dir"
-
-	//\cp -f "$tfvars_file" "$terragrunt_working_dir"
-
-	//fmt.Printf("%d bytes copied", nBytes)
 	fmt.Println("Done!")
 
-	return nil
+	os.Exit(0)
 }
 
 func findTerraformWorkingDir(tfvarsDir string) string {
