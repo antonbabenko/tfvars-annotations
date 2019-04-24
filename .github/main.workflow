@@ -20,12 +20,16 @@ workflow "Handle Release" {
 ## The actions
 ##
 
-
 ##
 ## Run the test-cases, via .github/run-tests.sh
 ##
 action "Test" {
   uses = "skx/github-action-tester@master"
+  secrets = ["GITHUB_TOKEN"]
+
+  ##
+  ## The actions
+  ##
 }
 
 ##
