@@ -34,6 +34,6 @@ func TestMain(m *testing.M) {
 func TestVersionInfo(t *testing.T) {
 	assert("unknown" == versionInfo())
 
-	build_version = "vXYZ"
+	buildVersion = "vXYZ"
 	assert("vXYZ" == versionInfo())
 }
