@@ -1,4 +1,4 @@
-# dynamic-tfvars - Update values in terraform.tfvars using annotations
+# tfvars-annotations - Update values in terraform.tfvars using annotations
 
 ### This is still WIP, full of bugs, missing core features and docs.
 
@@ -8,7 +8,7 @@ As of today, Terraform 0.11 and 0.12 support only static (known, fixed, already 
 
 While working on [modules.tf](https://github.com/antonbabenko/modules.tf-lambda) (a tool which converts visual diagrams created with [Cloudcraft.co](https://cloudcraft.co/) into Terraform configurations), I had a need to generate code which would chain invocations of [Terraform AWS modules](https://github.com/terraform-aws-modules) and pass arguments between them without requiring any extra Terraform code as a glue. [Terragrunt](https://github.com/gruntwork-io/terragrunt) is a great fit for this, it allows to reduce amount of Terraform configurations by reusing Terraform modules and providing arguments as values in `tfvars` files.
 
-Some languages I know have concepts like annotations and decorators, so at first I made a [shell script](https://github.com/antonbabenko/modules.tf-lambda/blob/v1.2.0/templates/terragrunt-common-layer/common/scripts/update_dynamic_values_in_tfvars.sh) which replaced values in `tfvars` based on annotations and was called by Terragrunt hooks. `dynamic-tfvars` shares the same goal and it has no external dependencies.
+Some languages I know have concepts like annotations and decorators, so at first I made a [shell script](https://github.com/antonbabenko/modules.tf-lambda/blob/v1.2.0/templates/terragrunt-common-layer/common/scripts/update_dynamic_values_in_tfvars.sh) which replaced values in `tfvars` based on annotations and was called by Terragrunt hooks. `tfvars-annotations` shares the same goal and it has no external dependencies.
 
 
 ## Use cases
@@ -58,14 +58,14 @@ See `examples` for some basics.
 
 ## How to install
 
-`go get github.com/antonbabenko/dynamic-tfvars`
+`go get github.com/antonbabenko/tfvars-annotations`
 
-Or download built releases for your platform [here](https://github.com/antonbabenko/dynamic-tfvars/releases)
+Or download built releases for your platform [here](https://github.com/antonbabenko/tfvars-annotations/releases)
 
 
 ## Authors
 
-This project is created and maintained by [Anton Babenko](https://github.com/antonbabenko) with the help from [different contributors](https://github.com/antonbabenko/dynamic-tfvars/graphs/contributors).
+This project is created and maintained by [Anton Babenko](https://github.com/antonbabenko) with the help from [different contributors](https://github.com/antonbabenko/tfvars-annotations/graphs/contributors).
 
 [![@antonbabenko](https://img.shields.io/twitter/follow/antonbabenko.svg?style=social&label=Follow%20@antonbabenko%20on%20Twitter)](https://twitter.com/antonbabenko)
 

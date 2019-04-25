@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/antonbabenko/dynamic-tfvars/util"
+	"github.com/antonbabenko/tfvars-annotations/util"
 
 	"github.com/pkg/errors"
 	"github.com/vosmith/pancake"
