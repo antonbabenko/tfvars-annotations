@@ -1,0 +1,9 @@
+{
+    "sensitive": false,
+    "type": "list",
+    "value": [
+        "subnet-297e8b509d8aeebfe",
+        "subnet-3f831847e5802071c",
+        "subnet-6c6f959a9063d32b2"
+    ]
+}
