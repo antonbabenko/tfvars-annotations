@@ -1,11 +1,40 @@
-# @ modulestf:disable_values_updates
+terragrunt = {
+  terraform = {
+    source = "."
+  }
+}
 
-vpc_id = "vpc-443a8116aae25c7e9" # @modulestf:terraform_output.vpc.vpc_id
+################
+# Static values
+################
 
-public_subnets = ["subnet-297e8b509d8aeebfe","subnet-3f831847e5802071c","subnet-6c6f959a9063d32b2"] # @modulestf:terraform_output.vpc.public_subnets
+title = "This value is not going to be changed by tfvars-annotations"
 
-something = "" # @modulestf:terraform_output.something.id
+#################
+# Dynamic values
+#################
 
-vpc4_id = "vpc-443a8116aae25c7e9" # @modulestf:terraform_output.vpc.vpc_id
+name = "Anton Babenko" # @tfvars:terragrunt_output.core.name
 
-the end!
+score = "37" # @tfvars:terragrunt_output.core.score
+
+love_sailing = "true" # @tfvars:terragrunt_output.core.love_sailing
+
+understand_how_to_use_twitter = "false" # @tfvars:terragrunt_output.core.understand_how_to_use_twitter
+
+languages = [
+  "ukrainian",
+  "russian",
+  "english",
+  "norwegian",
+  "spanish",
+] # @tfvars:terragrunt_output.core.languages
+
+######
+# These don't work because there are "=" in values. Changed annotation
+######
+list_of_properties = "" # @ tfvars:terragrunt_output.core.list_of_properties
+
+map_of_properties = "" # @ tfvars:terragrunt_output.core.map_of_properties
+
+mixed_value = "" # @ tfvars:terragrunt_output.core.mixed_value

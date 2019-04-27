@@ -57,6 +57,8 @@ See `examples` for some basics.
 6. make it much faster, less verbose
 7. Proposed syntax:
 
+ - `@tfvars:terragrunt_output`
+   
  - `@modulestf:terragrunt_output.security-group_5.this_security_group_id.to_list`
 
  - `@modulestf:terragrunt_output.["eu-west-1/security-group_5"].this_security_group_id.to_list`

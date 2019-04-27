@@ -13,7 +13,9 @@ import (
 
 	"github.com/antonbabenko/tfvars-annotations/util"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
+	"github.com/rodaine/hclencoder"
 	"github.com/vosmith/pancake"
 )
 
@@ -22,10 +24,15 @@ var version = flag.Bool("version", false, "print version information and exit")
 // Main filename to work with
 var tfvarsFile = "terraform.tfvars"
 
-var err error
+// Dir where terragrunt cache lives
+var terragruntCacheDir = ".terragrunt-cache"
 
 // Deliberately uninitialized. See below.
 var buildVersion string
+
+var _ = spew.Config
+
+var err error
 
 // versionInfo returns a string containing the version information of the
 // current build. It's empty by default, but can be included as part of the
@@ -58,7 +65,7 @@ func main() {
 	var tfvarsFullpath = filepath.Join(tfvarsDir, tfvarsFile)
 
 	// Relative path to destination ".terraform" working directory
-	var terraformWorkingDir = findTerraformWorkingDir(tfvarsDir)
+	var terraformWorkingDir = findWorkingDir(tfvarsDir)
 
 	// Full relative path to destination tfvars file (inside .terragrunt-cache/.../.../.terraform)
 	var terraformWorkingDirTfvarsFullPath = filepath.Join(terraformWorkingDir, tfvarsFile)
@@ -113,29 +120,35 @@ func main() {
 		workDir := filepath.Join(tfvarsDir, "../", dirName)
 		//fmt.Println(workDir)
 
-		resultValue, _, errResult := getResultFromTerragruntOutput(workDir, outputName)
+		resultValue, resultType, errResult := getResultFromTerragruntOutput(workDir, outputName)
 
 		if errResult != nil {
 			fmt.Printf("Can't update value of %s in %s because key \"%s\" does not exist in output", key, tfvarsFullpath, outputName)
 			fmt.Println()
 		}
 
-		// Format value as proper JSON
-		formattedResultValue, errResult := json.Marshal(resultValue)
+		hclBytes, errResult := hclencoder.Encode(resultValue)
 
 		if errResult != nil {
-			fmt.Println("error:", errResult)
+			fmt.Println("Error during hclencoder: ", errResult)
 		}
 
-		resultValue = string(formattedResultValue)
+		formattedResultValue := string(hclBytes)
+
+		// Remove last char (new line) from the string
+		formattedResultValue = strings.TrimSuffix(formattedResultValue, "\n")
+
+		if resultType == "map" {
+			formattedResultValue = fmt.Sprintf("{\n%s\n}", formattedResultValue)
+		}
 
 		if convertToType == "to_list" {
-			resultValue = fmt.Sprintf("[%s]", resultValue)
+			formattedResultValue = fmt.Sprintf("[%s]", formattedResultValue)
 		}
 
-		allKeyValues[key] = resultValue.(string)
+		allKeyValues[key] = formattedResultValue //.(string)
 
-		fmt.Printf("Value: %s", resultValue)
+		fmt.Printf("Value: %s", formattedResultValue)
 		fmt.Println()
 		fmt.Println()
 
@@ -166,27 +179,24 @@ func main() {
 	os.Exit(0)
 }
 
-func findTerraformWorkingDir(tfvarsDir string) string {
+func findWorkingDir(tfvarsDir string) string {
 
-	var terraformDir string
+	var workingDir string
 
-	// from https://flaviocopes.com/go-list-files/
-	// @todo: Make sure to find inside .terragrunt-cache folder to prevent from finding wrong .terraform directory
-	err := filepath.Walk(tfvarsDir, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			if matched, _ := regexp.MatchString(`\.terraform$`, path); matched {
-				terraformDir = path
-				// @todo: exit from walk function once directory name has been found
+	_ = filepath.Walk(tfvarsDir, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() && strings.Contains(path, terragruntCacheDir) && len(workingDir) == 0 {
+
+			// examples/project1-terragrunt/eu-west-1/app/.terragrunt-cache/F0pCE6ytQ7SNCsEA3BS4Wg57FJs/w9zgoLbGjuT9Afe34Zp8rkEMzXI
+			if matched, _ := regexp.MatchString(terragruntCacheDir+`/[^/]+/[^/]+$`, path); matched {
+				workingDir = path
 			}
 		}
 		return nil
 	})
 
-	if err != nil {
-		panic(err)
-	}
+	fmt.Println("Working dir: ", workingDir)
 
-	return terraformDir
+	return workingDir
 }
 
 func checkIsDisabled(tfvarsFullpath string) (string, bool) {
@@ -196,7 +206,7 @@ func checkIsDisabled(tfvarsFullpath string) (string, bool) {
 		return "", true
 	}
 
-	if regexp.MustCompile(`@modulestf:disable_values_updates`).Match(bytes) {
+	if regexp.MustCompile(`@tfvars:disable_values_updates`).Match(bytes) {
 		return string(bytes), true
 	}
 
@@ -205,7 +215,7 @@ func checkIsDisabled(tfvarsFullpath string) (string, bool) {
 
 func findKeys(tfvarsContent string) []string {
 
-	allKeys := regexp.MustCompile(`@modulestf:terraform_output\.[^ \n]*`).FindAllStringSubmatch(tfvarsContent, -1)
+	allKeys := regexp.MustCompile(`@tfvars:terragrunt_output\.[^ \n]*`).FindAllStringSubmatch(tfvarsContent, -1)
 
 	if len(allKeys) == 0 {
 		return nil
@@ -222,10 +232,8 @@ func findKeys(tfvarsContent string) []string {
 
 func getResultFromTerragruntOutput(dirName string, outputName string) (interface{}, string, error) {
 
-	// @todo: call terragrunt for real
-
-	//lsCmd := exec.Command("terragrunt", "output", "-json", output_name)
-	lsCmd := exec.Command("cat", outputName)
+	lsCmd := exec.Command("terragrunt", "output", "-json", outputName)
+	//lsCmd := exec.Command("cat", outputName)
 	lsCmd.Dir = dirName
 	lsOut, err := lsCmd.Output()
 
@@ -233,15 +241,16 @@ func getResultFromTerragruntOutput(dirName string, outputName string) (interface
 		return "", "", errors.Wrapf(err, "running terragrunt output -json %s", outputName)
 	}
 
-	//fmt.Println(string(lsOut))
+	//fmt.Println("terragrunt value = ", string(lsOut))
 
-	var TerraformOutput map[string]interface{}
+	// Unmarshal output into JSON
+	var TerragruntOutput map[string]interface{}
 
-	if err := json.Unmarshal([]byte(lsOut), &TerraformOutput); err != nil {
+	if err := json.Unmarshal(lsOut, &TerragruntOutput); err != nil {
 		panic(err)
 	}
 
-	return TerraformOutput["value"], TerraformOutput["type"].(string), nil
+	return TerragruntOutput["value"], TerragruntOutput["type"].(string), nil
 }
 
 func replaceAllKeysInTfvarsFile(tfvarsFullpath string, allKeyValues map[string]string) error {
@@ -254,13 +263,18 @@ func replaceAllKeysInTfvarsFile(tfvarsFullpath string, allKeyValues map[string]s
 	content := string(input)
 
 	for key, value := range allKeyValues {
-		regexpFindLine := fmt.Sprintf(`^(.+) =.+(\#)+(.*)%s(.*)`, key)
+		// @todo: fix this regexp:
+		// 1. This regexp is wrong with multiline values with "=" inside (eg, maps). It replaces the values in wrong place in that case.
+		// 2. It does not replace all occurances, but just the last one.
+		// Good: It works correctly for most of normal strings and lists where "=" is not present. :)
+
+		regexpFindLine := fmt.Sprintf(`^(?s)(.+) =.+(\#)+(.*)%s(.*)$`, key)
 		replacement := fmt.Sprintf(`$1 = %s $2$3%s$4`, value, key)
 
 		//fmt.Println(regexpFindLine)
 		//fmt.Println("KEY======>>>> ", key, "==", value)
 
-		content = regexp.MustCompilePOSIX(regexpFindLine).ReplaceAllString(content, replacement)
+		content = regexp.MustCompile(regexpFindLine).ReplaceAllString(content, replacement)
 	}
 
 	//fmt.Println("REPLACED ===", content)
