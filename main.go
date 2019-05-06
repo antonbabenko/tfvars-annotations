@@ -145,7 +145,8 @@ func main() {
 		resultValue, resultType, errResult := getResultFromTerragruntOutput(workDir, outputName)
 
 		if errResult != nil {
-			log.Warnf("Can't update value of %s in %s because key \"%s\" does not exist in output", key, tfvarsFullpath, outputName)
+			log.Warnf("Can't update value of %s in %s because key \"%s\"", key, tfvarsFullpath, outputName)
+			log.Warnf("Error from terragrunt:", errResult)
 			log.Println()
 		}
 
@@ -242,6 +243,8 @@ func getResultFromTerragruntOutput(dirName string, outputName string) (interface
 	lsOut, err := lsCmd.Output()
 
 	if err != nil {
+		log.Debugln(spew.Sdump(lsCmd))
+
 		return "", "", errors.Wrapf(err, "running terragrunt output -json %s", outputName)
 	}
 

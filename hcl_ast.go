@@ -92,11 +92,11 @@ func updateValuesInTfvarsFile(astf *ast.File, allKeyValues map[string]interface{
 		typeName := reflect.TypeOf(n).String()
 
 		if typeName == "*ast.ObjectItem" {
-			log.Traceln("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *")
-			log.Traceln("Node type=", typeName)
+			//log.Traceln("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *")
+			//log.Traceln("Node type=", typeName)
 
-			log.Traceln("Node=")
-			log.Traceln(spew.Sdump(n))
+			//log.Traceln("Node=")
+			//log.Traceln(spew.Sdump(n))
 
 			leadCommentText := ""
 			lineCommentText := ""
