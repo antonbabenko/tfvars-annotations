@@ -20,9 +20,13 @@ Some languages I know have concepts like annotations and decorators, so at first
 ## Features
 
 1. Supported annotations:
-  - [x] terragrunt_output
+  - [x] terragrunt_output:
+     - `@tfvars:terragrunt_output.vpc.vpc_id`
+     - `@tfvars:terragrunt_output.security-group.this_security_group_id`
   - [ ] terraform_output
   - [ ] data-sources generic
+1. Type wrapping:
+  - `to_list`: Wrap original value with `[]` to make it it as a list
 
 ## How to use
 
@@ -32,12 +36,12 @@ It will process tfvars file in the current directory and set updated values.
 
 E.g.:
 
-    $ tfvars-annotations update
+    $ tfvars-annotations examples/project1-terragrunt/eu-west-1/app
     $ terraform plan
  
 ## How to disable processing entirely
 
-Put `@modulestf:disable_values_updates` anywhere in the `terraform.tfvars` to not process the file.
+Put `@tfvars:disable_annotations` anywhere in the `terraform.tfvars` to not process the file.
 
 ## Examples
 
@@ -55,26 +59,36 @@ See `examples` for some basics.
 4. functions (limit(2), to_list)
 5. rewrite in go (invoke like this => update_dynamic_values_in_tfvars ${get_parent_tfvars_dir()}/${path_relative_to_include()})
 6. make it much faster, less verbose
-7. Proposed syntax:
+7. add dry-run flag
+8. Proposed syntax:
 
- - `@tfvars:terragrunt_output`
-   
- - `@modulestf:terragrunt_output.security-group_5.this_security_group_id.to_list`
+ - `@tfvars:terragrunt_output.security-group_5.this_security_group_id.to_list`
 
- - `@modulestf:terragrunt_output.["eu-west-1/security-group_5"].this_security_group_id.to_list`
+ - `@tfvars:terragrunt_output.["eu-west-1/security-group_5"].this_security_group_id.to_list`
 
- - `@modulestf:terragrunt_output.["global/route53-zones"].zone_id`
+ - `@tfvars:terragrunt_output.["global/route53-zones"].zone_id`
 
- - `@modulestf:terragrunt_data.aws_region.zone_id`
+ - `@tfvars:terragrunt_data.aws_region.zone_id`
 
- - `@modulestf:terragrunt_data.aws_region[{current=true}].zone_id`
+ - `@tfvars:terragrunt_data.aws_region[{current=true}].zone_id`
+
+## Bugs
+
+1. Add support for `maps` (and lists of maps). Strange bugs with rendering comments in wrong places.
 
 ## How to install
 
 `go get github.com/antonbabenko/tfvars-annotations`
 
-Or download built releases for your platform [here](https://github.com/antonbabenko/tfvars-annotations/releases)
+Or download release for your platform [here](https://github.com/antonbabenko/tfvars-annotations/releases)
 
+```
+go run . -debug examples/project1-terragrunt/eu-west-1/app
+```
+
+```
+go run . examples/project1-terragrunt/eu-west-1/app
+```
 
 ## Authors
 
