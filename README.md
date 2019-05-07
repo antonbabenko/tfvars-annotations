@@ -76,19 +76,33 @@ See `examples` for some basics.
 
 1. Add support for `maps` (and lists of maps). Strange bugs with rendering comments in wrong places.
 
-## How to install
+## Installation
 
-`go get github.com/antonbabenko/tfvars-annotations`
+On OSX, install it with Homebrew (not enough github stars to get it to the official repo):
 
-Or download release for your platform [here](https://github.com/antonbabenko/tfvars-annotations/releases)
+```
+brew install -s HomebrewFormula/tfvars-annotations.rb
+```
+
+Alternatively, you can download a [release](https://github.com/antonbabenko/tfvars-annotations/releases) suitable for your platform and unzip it. Make sure the `tfvars-annotations` binary is executable, and you're ready to go.
+
+You can also install it like this:
+
+```
+go get github.com/antonbabenko/tfvars-annotations
+```
+
+Or run it from source:
 
 ```
 go run . -debug examples/project1-terragrunt/eu-west-1/app
-```
-
-```
 go run . examples/project1-terragrunt/eu-west-1/app
 ```
+
+## Release
+
+1. Make GitHub Release: `hub release create v0.0.3`. Then Github Actions will build binaries and attach them to Github release.
+2. Update Homebrew version in `HomebrewFormula/tfvars-annotations.rb`. Install locally - `brew install -s HomebrewFormula/tfvars-annotations.rb`
 
 ## Authors
 
