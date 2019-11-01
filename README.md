@@ -1,6 +1,12 @@
 # Update values in terraform.tfvars using annotations
 
-### This is still WIP, full of bugs, missing core features and docs.
+## This project has become redundant (yay!)
+
+## The same functionality is available natively in Terragrunt since [version 0.19.20](https://github.com/gruntwork-io/terragrunt/releases/tag/v0.19.20) (released 15th of August 2019).
+
+### See [PR #3](https://github.com/antonbabenko/tfvars-annotations/pull/3) for the explanation and some extra unreleased code if you want to continue developing this for Terraform.
+
+---
 
 [Terraform](https://www.terraform.io/) is awesome!
  
