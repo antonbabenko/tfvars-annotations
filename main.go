@@ -24,7 +24,8 @@ var (
 	debug   = flag.Bool("debug", false, "enable debug logging")
 
 	// Main filename to work with
-	tfvarsFile = "terraform.tfvars"
+	//tfvarsFile = "terraform.tfvars"
+	tfvarsFile = "terragrunt.hcl"
 
 	// Dir where terragrunt cache lives
 	terragruntCacheDir = ".terragrunt-cache"
@@ -86,7 +87,11 @@ func main() {
 	log.Infoln("Working dir: ", terraformWorkingDir)
 
 	// Full relative path to destination tfvars file (inside .terragrunt-cache/.../.../.terraform)
-	var terraformWorkingDirTfvarsFullPath = filepath.Join(terraformWorkingDir, tfvarsFile)
+	var terraformWorkingDirTfvarsFullPath = ""
+
+	if terraformWorkingDir != "" {
+		terraformWorkingDirTfvarsFullPath = filepath.Join(terraformWorkingDir, tfvarsFile)
+	}
 
 	// Map of all keys and values to replace in tfvars file
 	allKeyValues := make(map[string]interface{})
@@ -117,14 +122,24 @@ func main() {
 	for _, key := range keysToReplace {
 		log.Infof("Key: %s", key)
 
-		split := strings.Split(key, ".")
+		// Remove "@tfvars:" from the beginning of the key
+		keyWithPrefix := strings.SplitAfter(key, ":")
 
+		keyWithoutPrefix := strings.Join(keyWithPrefix[1:], ":")
+
+		split := strings.Split(keyWithoutPrefix, ".")
+
+		sourceType := ""
 		dirName := ""
 		outputName := ""
 		convertToType := ""
 
 		if len(split) == 0 {
 			continue
+		}
+
+		if len(split) > 0 {
+			sourceType = split[0]
 		}
 
 		if len(split) > 1 {
@@ -142,7 +157,23 @@ func main() {
 		workDir := filepath.Join(tfvarsDir, "../", dirName)
 		//fmt.Println(workDir)
 
-		resultValue, resultType, errResult := getResultFromTerragruntOutput(workDir, outputName)
+		spew.Dump(sourceType)
+
+		var resultValue interface{}
+		var resultType string
+		var errResult error
+
+		switch sourceType {
+		case "terragrunt_output":
+			resultValue, resultType, errResult = getResultFromTerragruntOutput(workDir, outputName)
+		case "terraform_output":
+			resultValue, resultType, errResult = getResultFromTerraformOutput(workDir, outputName)
+			//case "aws_data":
+
+		}
+
+		spew.Dump(resultValue)
+		//resultValue, resultType, errResult := getResultFromTerragruntOutput(workDir, outputName)
 
 		if errResult != nil {
 			log.Warnf("Can't update value of %s in %s because key \"%s\"", key, tfvarsFullpath, outputName)
@@ -152,11 +183,6 @@ func main() {
 
 		_ = resultType
 		_ = convertToType
-
-		// @todo: add support for to_list
-		//if convertToType == "to_list" {
-		//	resultValue = fmt.Sprintf("[%s]", resultValue)
-		//}
 
 		allKeyValues[key] = resultValue
 
@@ -193,14 +219,16 @@ func main() {
 	log.Infoln(string(hclFormatted))
 	_ = hclFormatted
 
-	log.Infoln()
-	log.Infof("Copying updated %s into %s", tfvarsFullpath, terraformWorkingDirTfvarsFullPath)
-	log.Infoln()
+	if terraformWorkingDirTfvarsFullPath != "" {
+		log.Infoln()
+		log.Infof("Copying updated %s into %s", tfvarsFullpath, terraformWorkingDirTfvarsFullPath)
+		log.Infoln()
 
-	_, err = util.CopyFile(tfvarsFullpath, terraformWorkingDirTfvarsFullPath)
+		_, err = util.CopyFile(tfvarsFullpath, terraformWorkingDirTfvarsFullPath)
 
-	if err != nil {
-		log.Fatalf("%s: Can't copy file to %s", err, terraformWorkingDirTfvarsFullPath)
+		if err != nil {
+			log.Fatalf("%s: Can't copy file to %s", err, terraformWorkingDirTfvarsFullPath)
+		}
 	}
 
 	log.Infoln("Done!")
@@ -235,27 +263,36 @@ func readTfvarsFile(tfvarsFullpath string) (string, error) {
 	return string(bytes), nil
 }
 
-func getResultFromTerragruntOutput(dirName string, outputName string) (interface{}, string, error) {
+func getResultFromTerraformOutput(dirName string, outputName string) (interface{}, string, error) {
+	return getResultFromTerraOutput("terraform", dirName, outputName)
+}
 
-	lsCmd := exec.Command("terragrunt", "output", "-json", outputName)
+func getResultFromTerragruntOutput(dirName string, outputName string) (interface{}, string, error) {
+	return getResultFromTerraOutput("terragrunt", dirName, outputName)
+}
+
+func getResultFromTerraOutput(binary string, dirName string, outputName string) (interface{}, string, error) {
+
+	lsCmd := exec.Command(binary, "output", "-json", outputName)
 	//lsCmd := exec.Command("cat", outputName)
 	lsCmd.Dir = dirName
 	lsOut, err := lsCmd.Output()
 
+	log.Debugf("Running %s in %s", lsCmd.Path, lsCmd.Dir)
 	if err != nil {
-		log.Debugln(spew.Sdump(lsCmd))
+		//log.Debugln(spew.Sdump(lsCmd))
 
-		return "", "", errors.Wrapf(err, "running terragrunt output -json %s", outputName)
+		return "", "", errors.Wrapf(err, "running %s output -json %s", binary, outputName)
 	}
 
 	//fmt.Println("terragrunt value = ", string(lsOut))
 
 	// Unmarshal output into JSON
-	var TerragruntOutput map[string]interface{}
+	var TerraOutput map[string]interface{}
 
-	if err := json.Unmarshal(lsOut, &TerragruntOutput); err != nil {
+	if err := json.Unmarshal(lsOut, &TerraOutput); err != nil {
 		panic(err)
 	}
 
-	return TerragruntOutput["value"], TerragruntOutput["type"].(string), nil
+	return TerraOutput["value"], TerraOutput["type"].(string), nil
 }

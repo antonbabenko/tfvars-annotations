@@ -28,7 +28,7 @@ var (
 	tfvarsDisableAnnotations = `@tfvars:disable_annotations`
 
 	// Regexp
-	tfvarsTerragruntOutputRegexp = regexp.MustCompile(`@tfvars:terragrunt_output\.[^ \n]+`)
+	tfvarsTerragruntOutputRegexp = regexp.MustCompile(`@tfvars:(terragrunt_output|terraform_output)\.[^ \n]+`)
 
 	_ = spew.Config
 	_ = fmt.Sprint()
@@ -46,14 +46,13 @@ func parseContent(hclString *string) (*ast.File, error) {
 func scanComments(astf *ast.File) (bool, []string) {
 	comments := astf.Comments
 
-	isDisabled := false
 	keysFound := []string{}
 
 	for _, commentList := range comments {
 		for _, comment := range commentList.List {
 
 			if strings.Contains(comment.Text, tfvarsDisableAnnotations) {
-				isDisabled = true
+				return true, []string{}
 			}
 
 			allKeys := tfvarsTerragruntOutputRegexp.FindAllString(comment.Text, -1)
@@ -68,7 +67,7 @@ func scanComments(astf *ast.File) (bool, []string) {
 
 	log.Debugf("Found keys: %s", keysFound)
 
-	return isDisabled, keysFound
+	return false, keysFound
 }
 
 func updateValuesInTfvarsFile(astf *ast.File, allKeyValues map[string]interface{}) (ast.File, []string) {

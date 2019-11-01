@@ -1,11 +1,19 @@
-# @ modulestf:disable_values_updates
+# @ tfvars:disable_annotations
 
-vpc_id = "vpc-443a8116aae25c7e9" # @modulestf:terraform_output.vpc.vpc_id
+name = "Anton Babenko" # @tfvars:terraform_output.core.name
 
-public_subnets = ["subnet-297e8b509d8aeebfe","subnet-3f831847e5802071c","subnet-6c6f959a9063d32b2"] # @modulestf:terraform_output.vpc.public_subnets
+score = "37" # @tfvars:terraform_output.core.score
 
-something = "" # @modulestf:terraform_output.something.id
+name_as_list = [""] # @tfvars:terraform_output.core.name.to_list
 
-vpc4_id = "vpc-443a8116aae25c7e9" # @modulestf:terraform_output.vpc.vpc_id
+love_sailing = "true" # @tfvars:terraform_output.core.love_sailing
 
-the end!
+understand_how_to_use_twitter = "false" # @tfvars:terraform_output.core.understand_how_to_use_twitter
+
+languages = [
+  "ukrainian",
+  "russian",
+  "english",
+  "norwegian",
+  "spanish",
+] # @tfvars:terraform_output.core.languages
