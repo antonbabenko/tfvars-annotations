@@ -4,7 +4,9 @@
 
 [Terraform](https://www.terraform.io/) is awesome!
  
-As of today, Terraform 0.11 and 0.12 support only static (known, fixed, already computed) values in `tfvars` files. There is no way to use Terraform interpolation functions, or data-sources inside `tfvars` files in Terraform to update values.
+Terraform 0.11 and 0.12 supports only static (known, fixed, already computed) values in `tfvars` files. There is no way to use Terraform functions, or data-sources inside `tfvars` files in Terraform to update values.
+
+Using Terraform modules (eg, terraform-aws-modules) developers are not restricted on specific ways how module arguments can be provided (eg, from modules, remote states, other data-sources, command line arguments, tfvars files, etc). Using tfvars files is often a very good idea, because it separates configurations and values! And this is exactly where `tfvars-annotations` tool helps.
 
 While working on [modules.tf](https://github.com/antonbabenko/modules.tf-lambda) (a tool which converts visual diagrams created with [Cloudcraft.co](https://cloudcraft.co/) into Terraform configurations), I had a need to generate code which would chain invocations of [Terraform AWS modules](https://github.com/terraform-aws-modules) and pass arguments between them without requiring any extra Terraform code as a glue. [Terragrunt](https://github.com/gruntwork-io/terragrunt) is a great fit for this, it allows to reduce amount of Terraform configurations by reusing Terraform modules and providing arguments as values in `tfvars` files.
 
@@ -23,12 +25,55 @@ Some languages I know have concepts like annotations and decorators, so at first
   - [x] terragrunt_output:
      - `@tfvars:terragrunt_output.vpc.vpc_id`
      - `@tfvars:terragrunt_output.security-group.this_security_group_id`
-  - [ ] terraform_output
+  - [x] terraform_output
+     - `@tfvars:terraform_output.vpc.vpc_id`
+     - `@tfvars:terraform_output.security-group.this_security_group_id`
   - [ ] data-sources generic
-1. Type wrapping:
-  - `to_list`: Wrap original value with `[]` to make it it as a list
+     - `@tfvars:terragrunt_data.aws_region.zone_id` ?
+     - `@tfvars:terraform_data.aws_region.zone_id` ?
+
+## General form of the annotations:
+
+`@tfvars:TYPE.DIRECTORY.ATTR[.RETURN_TYPE]`
+
+`TYPE` - Type of the fetcher:
+1. terragrunt_output - Get value from `terragrunt output <ATTR>`
+1. terraform_output - Get value from `terraform output <ATTR>`
+1. terraform_data and terragrunt_data - Get attribute from data-source (eg, `aws_caller_identity.account_id` to ret)
+
+`DIRECTORY` - Working directory where `TYPE` commands should be run. It can be specified in short form if it is a name of directory on the same level as parent directory.
+Long form should be used to specify directories on the same level as well as from parent (no max level).
+
+Examples:
+1. `[./core]` and `[core]` are identical and refer to `core` subfolder, `[../../../core]` - several folders above
+1. `[../core]` and `core` have identical meanings and refer to `core` in the parent directory
+1. `[..]` - parent directory
+1. `[.]` - current directory
+
+`ATTR` - Name of output to return or name of attribute if `TYPE` is data-source (terraform_data and terragrunt_data).
+
+`RETURN_TYPE` - (Optional) Specify desired type to return. `to_list` can be used to wrap original value with `[]` to make it as a list.
+
+## Examples of various annotations
+
+1. `@tfvars:terragrunt_output.vpc.vpc_id`
+1. `@tfvars:terragrunt_output.[../../vpc].vpc_id`
+1. `@tfvars:terraform_output.[./vpc].vpc_id.to_list`
+1. `@tfvars:terraform_output.[../us-east-1/acm].this_acm_arn`
+1. `@tfvars:terragrunt_data.aws_region.zone_id`
+1. `@tfvars:terragrunt_data.aws_caller_identity.account_id.to_list`
 
 ## How to use
+
+```
+Usage: tfvars-annotations [DIR]
+  -debug
+        enable debug logging
+  -version
+        print version information and exit
+
+[DIR] (optional) - If not specified current directory will be used.
+```
 
 Run `tfvars-annotations` before `terraform plan, apply, refresh`.
 
@@ -38,7 +83,9 @@ E.g.:
 
     $ tfvars-annotations examples/project1-terragrunt/eu-west-1/app
     $ terraform plan
- 
+
+## Annotations
+
 ## How to disable processing entirely
 
 Put `@tfvars:disable_annotations` anywhere in the `terraform.tfvars` to not process the file.
@@ -50,8 +97,9 @@ See `examples` for some basics.
 ## To-do
 
 1. Get values from other sources:
- - data sources generic
+ - data sources generic (with missing values to use the default value)
  - aws_account_id or aws_region data sources
+ - aws_account_id by alias (reference by alias is friendlier)
 2. terragrunt_outputs from stacks:
  - in any folder
  - in current region
@@ -60,6 +108,8 @@ See `examples` for some basics.
 5. rewrite in go (invoke like this => update_dynamic_values_in_tfvars ${get_parent_tfvars_dir()}/${path_relative_to_include()})
 6. make it much faster, less verbose
 7. add dry-run flag
+9. Add -detailed-exitcode to know if files were changed
+10. Support terraform.tfvars and terragrunt.hcl or custom list of files
 8. Proposed syntax:
 
  - `@tfvars:terragrunt_output.security-group_5.this_security_group_id.to_list`
@@ -71,6 +121,7 @@ See `examples` for some basics.
  - `@tfvars:terragrunt_data.aws_region.zone_id`
 
  - `@tfvars:terragrunt_data.aws_region[{current=true}].zone_id`
+// 9. Describe and compare tfvars-annotations vs using remote_state
 
 ## Bugs
 
